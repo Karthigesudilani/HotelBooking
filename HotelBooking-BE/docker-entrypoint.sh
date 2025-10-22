@@ -11,18 +11,13 @@ export APP_ENV=${APP_ENV:-"production"}
 export APP_DEBUG=${APP_DEBUG:-"true"}
 export APP_URL=${APP_URL:-"http://localhost"}
 
-# Database configuration - support both MySQL and PostgreSQL
+# Database configuration - MySQL only
 export DB_CONNECTION=${DB_CONNECTION:-"mysql"}
 export DB_HOST=${DB_HOST:-"localhost"}
 export DB_PORT=${DB_PORT:-"3306"}
 export DB_DATABASE=${DB_DATABASE:-"hotelbooking"}
 export DB_USERNAME=${DB_USERNAME:-"root"}
 export DB_PASSWORD=${DB_PASSWORD:-""}
-
-# PostgreSQL specific settings
-if [ "$DB_CONNECTION" = "pgsql" ]; then
-    export DB_PORT=${DB_PORT:-"5432"}
-fi
 
 # Cache and session configuration
 export CACHE_DRIVER=${CACHE_DRIVER:-"file"}
