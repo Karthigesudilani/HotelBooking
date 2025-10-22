@@ -30,16 +30,17 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 # Copy application code
 COPY . .
 
-# Run composer scripts now that artisan exists
+# Set proper permissions for artisan and other files
+RUN chmod +x artisan \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+# Run composer scripts now that artisan exists and has proper permissions
 RUN composer run-script post-autoload-dump
 
 # Install Node.js dependencies
 RUN npm install --only=production
-
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
 
 # Configure Apache
 RUN a2enmod rewrite
