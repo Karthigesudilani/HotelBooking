@@ -42,6 +42,31 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force
 fi
 
+# Wait for database to be available (retry mechanism)
+echo "Waiting for database connection..."
+for i in {1..30}; do
+    echo "Attempt $i/30: Testing database connection..."
+    php artisan tinker --execute="DB::connection()->getPdo(); echo 'Database connection successful!';" && break
+    if [ $i -eq 30 ]; then
+        echo "Database connection failed after 30 attempts. Please check your database credentials."
+        echo "Current database configuration:"
+        echo "  Host: $DB_HOST"
+        echo "  Port: $DB_PORT"
+        echo "  Database: $DB_DATABASE"
+        echo "  Username: $DB_USERNAME"
+        echo "  Password: ${DB_PASSWORD:+[SET]}${DB_PASSWORD:-[NOT SET]}"
+        echo ""
+        echo "Common issues:"
+        echo "  1. Check if DB_PASSWORD is set correctly"
+        echo "  2. Verify database host and port"
+        echo "  3. Ensure database exists"
+        echo "  4. Check firewall/network connectivity"
+        exit 1
+    fi
+    echo "Connection failed, retrying in 2 seconds..."
+    sleep 2
+done
+
 # Run database migrations
 echo "Running database migrations..."
 php artisan migrate --force
