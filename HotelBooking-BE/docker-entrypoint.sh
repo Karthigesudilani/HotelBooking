@@ -44,38 +44,51 @@ fi
 
 # Wait for database to be available (retry mechanism)
 echo "Waiting for database connection..."
-for i in {1..30}; do
-    echo "Attempt $i/30: Testing database connection..."
-    php artisan tinker --execute="DB::connection()->getPdo(); echo 'Database connection successful!';" && break
-    if [ $i -eq 30 ]; then
-        echo "Database connection failed after 30 attempts. Please check your database credentials."
-        echo "Current database configuration:"
-        echo "  Host: $DB_HOST"
-        echo "  Port: $DB_PORT"
-        echo "  Database: $DB_DATABASE"
-        echo "  Username: $DB_USERNAME"
-        echo "  Password: ${DB_PASSWORD:+[SET]}${DB_PASSWORD:-[NOT SET]}"
-        echo ""
-        echo "Common issues:"
-        echo "  1. Check if DB_PASSWORD is set correctly"
-        echo "  2. Verify database host and port"
-        echo "  3. Ensure database exists"
-        echo "  4. Check firewall/network connectivity"
-        exit 1
-    fi
+DB_CONNECTED=false
+for i in {1..5}; do
+    echo "Attempt $i/5: Testing database connection..."
+    php artisan tinker --execute="DB::connection()->getPdo(); echo 'Database connection successful!';" && {
+        DB_CONNECTED=true
+        break
+    }
     echo "Connection failed, retrying in 2 seconds..."
     sleep 2
 done
 
-# Run database migrations
-echo "Running database migrations..."
-php artisan migrate --force
+if [ "$DB_CONNECTED" = false ]; then
+    echo "⚠️  Database connection failed after 5 attempts."
+    echo "Current database configuration:"
+    echo "  Host: $DB_HOST"
+    echo "  Port: $DB_PORT"
+    echo "  Database: $DB_DATABASE"
+    echo "  Username: $DB_USERNAME"
+    echo "  Password: ${DB_PASSWORD:+[SET]}${DB_PASSWORD:-[NOT SET]}"
+    echo ""
+    echo "⚠️  Skipping database migrations due to connection failure."
+    echo "⚠️  Application will start without database functionality."
+    echo ""
+    echo "To fix this issue:"
+    echo "  1. Check if DB_PASSWORD is set correctly"
+    echo "  2. Verify database host and port"
+    echo "  3. Ensure database exists"
+    echo "  4. Check firewall/network connectivity"
+    echo "  5. Run migrations manually once database is accessible"
+else
+    # Run database migrations only if connection is successful
+    echo "✅ Database connection successful! Running migrations..."
+    php artisan migrate --force
+fi
 
-# Clear and cache configuration
+# Clear and cache configuration (with fallback for database issues)
 echo "Optimizing Laravel for production..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+if [ "$DB_CONNECTED" = true ]; then
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+else
+    echo "⚠️  Skipping Laravel optimizations due to database connection failure."
+    echo "⚠️  Application will run with basic configuration."
+fi
 
 # Set proper permissions
 chown -R www-data:www-data /var/www/html/storage
