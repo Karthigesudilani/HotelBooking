@@ -65,8 +65,8 @@ RUN mkdir -p /var/www/html/database \
 # Run composer scripts now that artisan exists and has proper permissions
 RUN composer run-script post-autoload-dump
 
-# Install Node.js dependencies
-RUN npm install --only=production
+# Install Node.js dependencies (including dev dependencies for build)
+RUN npm install
 
 # Configure Apache
 RUN a2enmod rewrite
@@ -93,8 +93,9 @@ RUN php artisan key:generate --force \
     && php artisan route:cache \
     && php artisan view:cache
 
-# Clean up npm cache and node_modules to reduce image size
-RUN npm cache clean --force \
+# Clean up dev dependencies and npm cache to reduce image size
+RUN npm prune --production \
+    && npm cache clean --force \
     && rm -rf /root/.npm
 
 # Expose port 80
