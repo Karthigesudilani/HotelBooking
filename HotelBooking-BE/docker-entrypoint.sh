@@ -42,11 +42,11 @@ if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force
 fi
 
-# Wait for database to be available (retry mechanism)
-echo "Waiting for database connection..."
+# Test database connection (no migrations - already run)
+echo "Testing database connection..."
 DB_CONNECTED=false
-for i in {1..5}; do
-    echo "Attempt $i/5: Testing database connection..."
+for i in {1..3}; do
+    echo "Attempt $i/3: Testing database connection..."
     php artisan tinker --execute="DB::connection()->getPdo(); echo 'Database connection successful!';" && {
         DB_CONNECTED=true
         break
@@ -56,7 +56,7 @@ for i in {1..5}; do
 done
 
 if [ "$DB_CONNECTED" = false ]; then
-    echo "⚠️  Database connection failed after 5 attempts."
+    echo "⚠️  Database connection failed after 3 attempts."
     echo "Current database configuration:"
     echo "  Host: $DB_HOST"
     echo "  Port: $DB_PORT"
@@ -64,7 +64,6 @@ if [ "$DB_CONNECTED" = false ]; then
     echo "  Username: $DB_USERNAME"
     echo "  Password: ${DB_PASSWORD:+[SET]}${DB_PASSWORD:-[NOT SET]}"
     echo ""
-    echo "⚠️  Skipping database migrations due to connection failure."
     echo "⚠️  Application will start without database functionality."
     echo ""
     echo "To fix this issue:"
@@ -72,11 +71,9 @@ if [ "$DB_CONNECTED" = false ]; then
     echo "  2. Verify database host and port"
     echo "  3. Ensure database exists"
     echo "  4. Check firewall/network connectivity"
-    echo "  5. Run migrations manually once database is accessible"
 else
-    # Run database migrations only if connection is successful
-    echo "✅ Database connection successful! Running migrations..."
-    php artisan migrate --force
+    echo "✅ Database connection successful!"
+    echo "ℹ️  Skipping migrations - database tables already exist"
 fi
 
 # Clear and cache configuration (with fallback for database issues)
