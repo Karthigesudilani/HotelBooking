@@ -59,9 +59,9 @@ RUN npm install
 RUN a2enmod rewrite
 RUN echo '<VirtualHost *:80>\n\
     ServerAdmin webmaster@localhost\n\
-    DocumentRoot /var/www/html/public\n\
+    DocumentRoot /var/www/html\n\
     \n\
-    <Directory /var/www/html/public>\n\
+    <Directory /var/www/html>\n\
         AllowOverride All\n\
         Require all granted\n\
     </Directory>\n\
