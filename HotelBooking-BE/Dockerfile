@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
     sqlite3 \
-    && docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -59,7 +59,8 @@ RUN if [ ! -f .env ]; then \
 # Ensure database directory exists and create SQLite database
 RUN mkdir -p /var/www/html/database \
     && touch /var/www/html/database/database.sqlite \
-    && chown www-data:www-data /var/www/html/database/database.sqlite
+    && chown www-data:www-data /var/www/html/database/database.sqlite \
+    && php -m | grep -i sqlite
 
 # Run composer scripts now that artisan exists and has proper permissions
 RUN composer run-script post-autoload-dump
