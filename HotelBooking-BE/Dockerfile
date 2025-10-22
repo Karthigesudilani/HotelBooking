@@ -72,20 +72,17 @@ RUN echo '<VirtualHost *:80>\n\
 # Build frontend assets
 RUN npm run build
 
-# Generate application key and run migrations
-RUN php artisan key:generate --force \
-    && php artisan migrate --force \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
-
 # Clean up dev dependencies and npm cache to reduce image size
 RUN npm prune --production \
     && npm cache clean --force \
     && rm -rf /root/.npm
 
+# Copy and set up startup script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose port 80
 EXPOSE 80
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Use custom entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
