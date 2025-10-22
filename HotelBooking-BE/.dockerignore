@@ -6,7 +6,6 @@
 # Docker
 Dockerfile
 .dockerignore
-.docker/
 
 # Documentation
 README.md

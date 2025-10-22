@@ -28,8 +28,8 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Copy package.json and install Node.js dependencies
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
+COPY package.json ./
+RUN npm install --only=production
 
 # Copy application code
 COPY . .
@@ -41,7 +41,19 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Configure Apache
 RUN a2enmod rewrite
-COPY .docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
+# Create Apache configuration inline since .docker directory might not be available
+RUN echo '<VirtualHost *:80>\n\
+    ServerAdmin webmaster@localhost\n\
+    DocumentRoot /var/www/html/public\n\
+    \n\
+    <Directory /var/www/html/public>\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+    \n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
 # Build frontend assets
 RUN npm run build
