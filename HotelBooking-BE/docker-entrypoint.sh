@@ -73,7 +73,8 @@ if [ "$DB_CONNECTED" = false ]; then
     echo "  4. Check firewall/network connectivity"
 else
     echo "✅ Database connection successful!"
-    echo "ℹ️  Skipping migrations - database tables already exist"
+    echo "🔄 Running database migrations..."
+    php artisan migrate --force
 fi
 
 # Clear and cache configuration (with fallback for database issues)
