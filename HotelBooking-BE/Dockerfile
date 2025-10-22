@@ -24,15 +24,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy composer files
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Copy package.json and install Node.js dependencies
-COPY package.json ./
-RUN npm install --only=production
+# Install PHP dependencies without scripts first
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
 # Copy application code
 COPY . .
+
+# Run composer scripts now that artisan exists
+RUN composer run-script post-autoload-dump
+
+# Install Node.js dependencies
+RUN npm install --only=production
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
