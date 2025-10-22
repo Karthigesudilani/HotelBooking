@@ -16,16 +16,22 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     nodejs \
     npm \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+    sqlite3 \
+    && docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy composer files
+# Copy composer files first for better caching
 COPY composer.json composer.lock ./
 
 # Install PHP dependencies without scripts first
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Copy package.json for Node.js dependencies
+COPY package.json ./
 
 # Copy application code
 COPY . .
@@ -36,6 +42,25 @@ RUN chmod +x artisan \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
+# Create .env file if it doesn't exist (needed for artisan commands)
+RUN if [ ! -f .env ]; then \
+        echo "APP_NAME=Laravel" > .env && \
+        echo "APP_ENV=production" >> .env && \
+        echo "APP_KEY=" >> .env && \
+        echo "APP_DEBUG=false" >> .env && \
+        echo "APP_URL=http://localhost" >> .env && \
+        echo "DB_CONNECTION=sqlite" >> .env && \
+        echo "DB_DATABASE=/var/www/html/database/database.sqlite" >> .env && \
+        echo "CACHE_DRIVER=file" >> .env && \
+        echo "SESSION_DRIVER=file" >> .env && \
+        echo "QUEUE_CONNECTION=sync" >> .env; \
+    fi
+
+# Ensure database directory exists and create SQLite database
+RUN mkdir -p /var/www/html/database \
+    && touch /var/www/html/database/database.sqlite \
+    && chown www-data:www-data /var/www/html/database/database.sqlite
+
 # Run composer scripts now that artisan exists and has proper permissions
 RUN composer run-script post-autoload-dump
 
@@ -44,7 +69,6 @@ RUN npm install --only=production
 
 # Configure Apache
 RUN a2enmod rewrite
-# Create Apache configuration inline since .docker directory might not be available
 RUN echo '<VirtualHost *:80>\n\
     ServerAdmin webmaster@localhost\n\
     DocumentRoot /var/www/html/public\n\
@@ -61,11 +85,16 @@ RUN echo '<VirtualHost *:80>\n\
 # Build frontend assets
 RUN npm run build
 
-# Generate application key and optimize
+# Generate application key and run migrations
 RUN php artisan key:generate --force \
+    && php artisan migrate --force \
     && php artisan config:cache \
     && php artisan route:cache \
     && php artisan view:cache
+
+# Clean up npm cache and node_modules to reduce image size
+RUN npm cache clean --force \
+    && rm -rf /root/.npm
 
 # Expose port 80
 EXPOSE 80
